@@ -8,6 +8,7 @@
     * Release x64
 
 ## 구현내용
+    * Document Parsing
     * Stemming (using porter2 Stemmer)
     * Stopword Removing (불용어 제거)
     * Indexing (역색인)
