@@ -1,6 +1,5 @@
 # Information Retrieval Term Project
-## 2016-2 COSE472 
-### Korea Univ.
+### Korea Univ. 2016-2학기 COSE472
 
 ## 구현환경
     * Windows 10
@@ -16,3 +15,7 @@
 
 ## 기간
     * 2016.09 ~ 2016.12
+
+## Reference
+    * corpus (기사 약 55만개) - https://drive.google.com/open?id=0B8VS6fJASyTvSURIM2NwQUp3cVU
+    * Porter2 Stemmer - https://bitbucket.org/smassung/porter2_stemmer/wiki/Home
