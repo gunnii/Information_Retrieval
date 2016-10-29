@@ -22,7 +22,7 @@ struct word {
 	int index_no; // 색인어 id
 	int DF;
 	int CF;
-	int start;
+	int start; // 역색인 table에서의 시작위치
 	word() {
 		index_no = 0;
 		DF = 0;
@@ -79,11 +79,11 @@ bool compare(const iindex& i1, const iindex& i2) {
 unordered_map<string, string> sirregular(); // irregularverbs.txt를 불러와서 map에 저장
 unordered_set<string> storeStopwd(); // stopword.txt를 불러와서 set에 저장
 string stem(string t, int doc_count, ofstream& f); // stemming 과정을 처리해주는 함수
-string topic_Stem(string s); // topic stemming
+void topic_Stem(topic t, map<int, map<string, int>>& list);  // topic stemming
 string format_digit(int num_digit, int num); // 자리수 맞추는 함수
 string format_weight(double weight); // 역색인파일 형식을 맞춰주는 함수
 void utility::get_file_paths(LPCWSTR current, vector<string>& paths); // data 경로를 저장하는 함수
-void return_index(int start);
+void return_index(int df, int start, map<int, pair<double, double>>& cs, string word, int qw); // query term 에 대한 역색인 저장
 
 // 전역변수 선언
 int index_id = 1;
@@ -281,15 +281,15 @@ void main()
 	file.close(); // term.dat CLOSE
 
 	topic topic25;
-	vector<topic> topiclist;
 	state = false;
 	state2 = false;
+	stringstream st;
+	map<int, map<string, int>> query; // Query -> stemming -> TF 계산
 
 	// Query 정련 
 	file.open("topics25.txt");
 	if (file.is_open()) {
 		while (getline(file, line)) {
-			if (line == "") break;
 			if (line.find("<num>") != string::npos) {
 				line2 = line.substr(line.size() - 4, 4);
 				line2.erase(remove(line2.begin(), line2.end(), ' '), line2.end());
@@ -297,7 +297,7 @@ void main()
 			}
 			if ((begin=line.find("<title>")) != string::npos) {
 				line2 = line.substr(begin + 7, line.size() - 7);
-				topic25.title = topic_Stem(line2);
+				topic25.title = line2;
 			} 
 
 			if (line.find("<narr>") != string::npos) state = false;
@@ -309,9 +309,7 @@ void main()
 			if (line.find("<narr>") != string::npos) state2 = true; 
 
 			if (line.find("</top>") != string::npos) {
-				topic25.desc = topic_Stem(topic25.desc);
-				topic25.narr = topic_Stem(topic25.narr);
-				topiclist.push_back(topic25);
+				topic_Stem(topic25, query); // query에 대한 stemming, trimming, TF계산 진행
 				topic25.num = " ";
 				topic25.desc = " ";
 				topic25.title = " ";
@@ -323,7 +321,7 @@ void main()
 	stopwordlist.clear(); // stopwordlist CLEAR
 	irrlist.clear(); // 불규칙동사 CLEAR
 
-	return_index(10); // 시작 위치를 넘기면 역색인 return
+
 	exit(0);
 
 	////시간측정
@@ -334,18 +332,27 @@ void main()
 	//	<< "총 소요시간: " << elapsed_seconds.count() << "초" << endl;
 }
 
-
-void return_index(int start) {
+void return_index(int df,int start, map<int,pair<double,double>>& cs, string word, int qw) {
 	int offset = 6 + 6 + 3 + 7;
 	string result;
 	ifstream f("index.dat");
-	
+	pair<double, double> tmp;
+	iindex ii;
+	map<int, pair<double, double>>::iterator it;
 	f.seekg(start*(offset+2), ios::beg);
-	getline(f, result);
-	cout << result.substr(0,6) << endl; // 색인어 id
-	cout << result.substr(6, 6) << endl; // 문서 id
-	cout << result.substr(12, 3) << endl; // TF
-	cout << result.substr(15, 7) << endl; // 시작위치
+	
+	for (int i = 0; i < df; i++) {
+		getline(f, result);
+		ii.doc_id = stoi(result.substr(6, 6));
+		ii.weight = stod(result.substr(15, 7));
+		if ((it = cs.find(ii.doc_id)) != cs.end()) {
+			it->second.first += qw*ii.weight;
+		}
+		else {
+
+		}
+
+	}
 }
 
 // stopword를 불러와서 unordered_set에 저장함
@@ -409,10 +416,12 @@ string stem(string t, int doc_count, ofstream& f) {
 	document_length = 0;
 	// word 단위로 쪼개져서 들어옴
 	while (getline(tmp, index, ' ')) {
+		if ((index.at(0) == index.at(1))) index = "";
 		if (index.find("http") != string::npos) index = "";
 		if (index.find("www") != string::npos) index = "";
 		if (index.find("'") != string::npos) index = "";
 		if (index.find("-") != string::npos) index = " ";
+		
 		// trim 
 		Porter2Stemmer::trim(index);
 
@@ -421,8 +430,12 @@ string stem(string t, int doc_count, ofstream& f) {
 
 		// 불완전동사 처리
 		if ((it = irrlist.find(index)) != irrlist.end()) index = it->second;
+
 		// Stemming 
 		Porter2Stemmer::stem(index);
+
+		// Remove Stopword
+		if (stopwordlist.find(index) != stopwordlist.end()) index = "";
 
 		// 공백제거
 		if (index == "") result += index;
@@ -459,25 +472,36 @@ string stem(string t, int doc_count, ofstream& f) {
 	TF.clear();
 	return result;
 }
-string topic_Stem(string s) {
-	stringstream ss(s);
+void topic_Stem(topic t, map<int, map<string,int>>& list) {
+	stringstream ss;
 	string line,result;
 	unordered_map<string, string>::const_iterator it;
+	map<string, int>::iterator it2;
+	map<string, int> tmp;
 
-	while (getline(ss, line, ' ')) {
-		Porter2Stemmer::trim(line); // Trim 
-		if (stopwordlist.find(line) != stopwordlist.end()) line = ""; // Remove Stopword
-		if ((it = irrlist.find(line)) != irrlist.end()) line = it->second; // 불완전동사 처리
-		Porter2Stemmer::stem(line); // Stemming 
+	for (int i = 0; i < 3; i++) {
+		ss.clear();
+		if (i == 0) ss.str(t.title);
+		else if (i == 1) ss.str(t.desc);
+		else if (i == 2) ss.str(t.narr);
 
-		// 공백제거
-		if (line == "") result += line;
-		else {
-			result += " " + line;
-			document_length++;	// 문서 길이 측정
+		while (getline(ss, line, ' ')) {
+			Porter2Stemmer::trim(line); // Trim 
+			if (stopwordlist.find(line) != stopwordlist.end()) line = ""; // Remove Stopword
+			if ((it = irrlist.find(line)) != irrlist.end()) line = it->second; // 불완전동사 처리
+			Porter2Stemmer::stem(line); // Stemming 
+			
+			if ((it2 = tmp.find(line)) != tmp.end()) {
+				if (i == 0) it2->second += 1; // title이면 tf 1 추가로 증가
+				it2->second += 1; // TF계산
+			}
+			else {
+				if(!(line=="") && !(line==" "))
+					tmp.insert(make_pair(line, 1));
+			}
 		}
 	}
-	return result;
+	list.insert(make_pair(stoi(t.num), tmp));
 }
 
 // 역색인파일 작성시 필요한 색인어ID,문서ID,TF를 원하는 자릿수로 표현
