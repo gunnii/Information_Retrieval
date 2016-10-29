@@ -12,19 +12,11 @@
 #include "porter2_stemmer.h"
 #include "utility.h"
 
-// 시간출력위해서
-#include <chrono>
-#include <ctime>
+//// 시간출력위해서
+//#include <chrono>
+//#include <ctime>
 
 using namespace std;
-
-unordered_map<string, string> sirregular(); // irregularverbs.txt를 불러와서 map에 저장
-unordered_set<string> storeStopwd(); // stopword.txt를 불러와서 set에 저장
-string stem(string t, int doc_count, ofstream& f); // stemming 과정을 처리해주는 함수
-string topic_Stem(string s); // topic stemming
-string format_digit(int num_digit, int num); // 자리수 맞추는 함수
-string format_weight(double weight); // 역색인파일 형식을 맞춰주는 함수
-void utility::get_file_paths(LPCWSTR current, vector<string>& paths); // data 경로를 저장하는 함수
 
 struct word {
 	int index_no; // 색인어 id
@@ -83,6 +75,16 @@ bool compare(const iindex& i1, const iindex& i2) {
 	else
 		return i1.doc_id < i2.doc_id;
 }
+
+unordered_map<string, string> sirregular(); // irregularverbs.txt를 불러와서 map에 저장
+unordered_set<string> storeStopwd(); // stopword.txt를 불러와서 set에 저장
+string stem(string t, int doc_count, ofstream& f); // stemming 과정을 처리해주는 함수
+string topic_Stem(string s); // topic stemming
+string format_digit(int num_digit, int num); // 자리수 맞추는 함수
+string format_weight(double weight); // 역색인파일 형식을 맞춰주는 함수
+void utility::get_file_paths(LPCWSTR current, vector<string>& paths); // data 경로를 저장하는 함수
+void return_index(int start);
+
 // 전역변수 선언
 int index_id = 1;
 int doc_size = 0;
@@ -104,7 +106,10 @@ void main()
 	article article;
 	document document;
 	string line,line2;
-	int i,Tagsize,begin,end;
+	int i = 0;
+	int Tagsize = 0;
+	int begin = 0;
+	int end = 0;
 	int doc_count = 1;
 	bool state = false;
 	bool state1 = false;
@@ -259,11 +264,11 @@ void main()
 	
 	string tmp[4];
 	word tmpword;
-	// 단어정보불러오기
+	// 단어정보 불러오기 - 후에는 없애도됨
 	file.open("term.dat");
 	if (file.is_open()) {
 		while (getline(file, line)) {
-			if (line == "") break;
+			if (line == " " && line=="") break;
 			stringstream sstmp(line);
 			sstmp >> tmp[0] >> tmp[1] >> tmp[2] >> tmp[3] >> tmp[4];
 			tmpword.index_no = stoi(tmp[0].c_str());
@@ -274,7 +279,6 @@ void main()
 		}
 	}
 	file.close(); // term.dat CLOSE
-	cout << "wordlist SIZE : " << wordlist.size() << "개" << endl;
 
 	topic topic25;
 	vector<topic> topiclist;
@@ -319,15 +323,30 @@ void main()
 	stopwordlist.clear(); // stopwordlist CLEAR
 	irrlist.clear(); // 불규칙동사 CLEAR
 
-	/* //시간측정
-	tend = std::chrono::system_clock::now();
-	std::chrono::duration<double> elapsed_seconds = tend - tstart;
-	std::time_t end_time = std::chrono::system_clock::to_time_t(tend);
-	std::cout << "종료시간 :" << std::ctime(&end_time)
-		<< "총 소요시간: " << elapsed_seconds.count() << "초" << endl;
-	*/
+	return_index(10); // 시작 위치를 넘기면 역색인 return
+	exit(0);
+
+	////시간측정
+	//tend = std::chrono::system_clock::now();
+	//std::chrono::duration<double> elapsed_seconds = tend - tstart;
+	//std::time_t end_time = std::chrono::system_clock::to_time_t(tend);
+	//std::cout << "종료시간 :" << std::ctime(&end_time)
+	//	<< "총 소요시간: " << elapsed_seconds.count() << "초" << endl;
 }
 
+
+void return_index(int start) {
+	int offset = 6 + 6 + 3 + 7;
+	string result;
+	ifstream f("index.dat");
+	
+	f.seekg(start*(offset+2), ios::beg);
+	getline(f, result);
+	cout << result.substr(0,6) << endl; // 색인어 id
+	cout << result.substr(6, 6) << endl; // 문서 id
+	cout << result.substr(12, 3) << endl; // TF
+	cout << result.substr(15, 7) << endl; // 시작위치
+}
 
 // stopword를 불러와서 unordered_set에 저장함
 unordered_set<string> storeStopwd() {
