@@ -12,7 +12,7 @@
     * Stemming (using porter2 Stemmer)
     * Stopword Removing (불용어 제거)
     * Indexing (역색인)
-    * Ranking (LM)
+    * Ranking ( Vector Space Model & Language Modelv & Smoothing)
 
 ## 기간
     * 2016.09 ~ 2016.12
