@@ -72,6 +72,9 @@ struct iindex {
 bool pair_sort(const pair<int, double>& lhs, const pair<int, double>& rhs) {
 	return lhs.second > rhs.second;
 }
+bool pair_sort_lm(const pair<int, double>& lhs, const pair<int, double>& rhs) {
+	return lhs.second < rhs.second;
+}
 bool compare(const iindex& i1, const iindex& i2) {
 	if (i1.index_id != i2.index_id)
 		return i1.index_id < i2.index_id;
@@ -274,7 +277,6 @@ void main()
 	//outIndex.close(); // 역색인파일 CLOSE
 	//cout << "역색인 파일 & 단어정보파일 생성완료!!!" << endl; 
 	
-
 	string tmp[4];
 	word tmpword;
 	// 단어정보 불러오기 - 후에는 없애도됨
@@ -342,17 +344,18 @@ void main()
 	vector<string> docname;
 	ofstream out;
 
-	//out.open("Result_VSM.txt", ios::ate);
-	//for (auto x : query) {
-	//	// 1개 쿼리 단위로 qword,qtf 넘김
-	//	ranking = cscal(x.second);
-	//	return_RelDoc(x.first , ranking, out);
-	//	ranking.clear();
-	//}
-	//out.close();
+	out.open("Result_VSM.txt", ios::ate);
+	for (auto x : query) {
+		// 1개 쿼리 단위로 qword,qtf 넘김
+		ranking = cscal(x.second);
+		return_RelDoc(x.first , ranking, out);
+		ranking.clear();
+	}
+	out.close();
+	cout << "VSM 결과 출력 완료" << endl;
 
 	// Dirichlet Smoothing
-	out.open("Result_LM_Dirichlet.txt", ios::ate);
+	out.open("Result_LM.txt", ios::ate);
 	for (auto x : query) {
 		// LM - 스무딩 함수 호출
 		ranking = lmcal(x.second);
@@ -360,6 +363,7 @@ void main()
 		ranking.clear();
 	}
 	out.close();
+	cout << "언어모델 결과 출력 완료" << endl;
 
 	//시간측정
 	tend = std::chrono::system_clock::now();
@@ -378,19 +382,22 @@ void return_RelDoc(int Qnum, vector<pair<int, double>> cs, ofstream& of) {
 	ifstream f;
 	f.open("doc.dat");
 	int i = 0;
+
+	of << "Query Number : "<< Qnum << endl;
 	for (auto x : cs) {
-		f.seekg((x.first-1)*(offset+2), ios::beg);
+		f.seekg((unsigned long long)((x.first-1)*(offset+2)), ios::beg);
 		getline(f, line);
 		line2 = line.substr(6, 16);
 		if (line2.at(0) == 'Y' || line2.at(0) == 'P') {
 			line2 = line.substr(5, 16);
-			of << Qnum << "	" << line2 << endl;
+			of << line2 << "	" << x.second << endl;
 		}
 		else
-			of << Qnum << "	" << line2 << endl;
+			of << line2 << "	" << x.second << endl;
 		i++;
 		if (i == 10) break; // 상위 10개만
 	}
+	of << endl;
 	f.close();
 }
 
@@ -409,12 +416,12 @@ int return_doclen(int id) {
 		return stoi(line.substr(23, 4)); // 문서 길이 return
 }
 
-// 1개의 query 단위로 끊어져서 들어옴
+// Language Model 
 vector<pair<int,double>> lmcal(map<string,int> query) {
 	int offset = 6 + 6 + 3 + 7;
 	vector<pair<int, double>> result;
 	map<string, word>::iterator it; // wordlist iterator
-	map<int, double>::iterator it2; // lm iterator
+	map<int, double>::iterator it2; // LM iterator
 	ifstream f;
 	string line = "";
 	int doc_id=0;
@@ -425,11 +432,10 @@ vector<pair<int,double>> lmcal(map<string,int> query) {
 
 	f.open("index.dat");
 	for (auto x : query) {
-		cout << "현재 query단어: " + x.first << endl;
 		if ((it = wordlist.find(x.first)) != wordlist.end()) {
 			f.seekg((unsigned long long)(it->second.start*(offset + 2)), ios::beg);
 			for (int i = 0; i < it->second.DF; i++) {
-				if (it->second.CF > 5000) break;
+				if (it->second.CF > 5000 || it->second.DF > 5000) break;
 				getline(f, line);
 				doc_id = stoi(line.substr(6, 6)); // relevant doc_id
 				D = return_doclen(doc_id); // 해당 문서의 길이 |D|
@@ -448,7 +454,7 @@ vector<pair<int,double>> lmcal(map<string,int> query) {
 		result.push_back(make_pair(y.first, y.second));
 	}
 	lm.clear();
-	sort(result.begin(), result.end(), pair_sort);
+	sort(result.begin(), result.end(), pair_sort_lm);
 	return result;
 }
 
@@ -464,7 +470,7 @@ vector<pair<int, double>> cscal(map<string, int> query) {
 	double weight = 0;
 
 	map<int, pair<double, double>> cs;
-	
+
 	f.open("index.dat");
 	for (auto y : query) {
 		if ((it = wordlist.find(y.first)) != wordlist.end()) {
@@ -617,7 +623,7 @@ void topic_Stem(topic t, map<int, map<string,int>>& list) {
 	unordered_map<string, string>::const_iterator it;
 	map<string, int>::iterator it2;
 	map<string, int> tmp;
-
+	
 	for (int i = 0; i < 3; i++) {
 		ss.clear();
 		if (i == 0) ss.str(t.narr);
