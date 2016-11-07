@@ -279,7 +279,6 @@ void main()
 	
 	string tmp[4];
 	word tmpword;
-	// 단어정보 불러오기 - 후에는 없애도됨
 	file.open("term.dat");
 	if (file.is_open()) {
 		while (getline(file, line)) {
@@ -294,6 +293,7 @@ void main()
 		}
 	}
 	file.close(); // term.dat CLOSE
+	cout << "Term.dat 처리 끝!!!" << endl;
 
 	// 시간 측정을 위해서
 	std::chrono::time_point<std::chrono::system_clock> tstart, tend;
@@ -344,15 +344,15 @@ void main()
 	vector<string> docname;
 	ofstream out;
 
-	out.open("Result_VSM.txt", ios::ate);
-	for (auto x : query) {
-		// 1개 쿼리 단위로 qword,qtf 넘김
-		ranking = cscal(x.second);
-		return_RelDoc(x.first , ranking, out);
-		ranking.clear();
-	}
-	out.close();
-	cout << "VSM 결과 출력 완료" << endl;
+	//out.open("Result_VSM.txt", ios::ate);
+	//for (auto x : query) {
+	//	// 1개 쿼리 단위로 qword,qtf 넘김
+	//	ranking = cscal(x.second);
+	//	return_RelDoc(x.first , ranking, out);
+	//	ranking.clear();
+	//}
+	//out.close();
+	//cout << "VSM 결과 출력 완료" << endl;
 
 	// Dirichlet Smoothing
 	out.open("Result_LM.txt", ios::ate);
@@ -435,7 +435,6 @@ vector<pair<int,double>> lmcal(map<string,int> query) {
 		if ((it = wordlist.find(x.first)) != wordlist.end()) {
 			f.seekg((unsigned long long)(it->second.start*(offset + 2)), ios::beg);
 			for (int i = 0; i < it->second.DF; i++) {
-				if (it->second.CF > 5000 || it->second.DF > 5000) break;
 				getline(f, line);
 				doc_id = stoi(line.substr(6, 6)); // relevant doc_id
 				D = return_doclen(doc_id); // 해당 문서의 길이 |D|
