@@ -367,11 +367,12 @@ void main()
 	vector<pair<int, int>> Rdoc_Set; // relevant document set을 저장. query 단어와 매칭 수가 많은수대로 상위 1000개 
 	map<int, map<string, int>> doc_word_TF;
 	// Language Model - Dirichlet Smoothing
-	out.open("result.txt", ios::ate);
+	out.open("result.txt");
 	for (auto x : query) {
 		Rdoc_Set = Reldoc_Set(x.second, doc_word_TF); // 각 쿼리별 단어set을 인자로 넘기고 relevant set을 return 받음
 		cout << "Relevant document set 선정 끝!!!" << endl;
 		ranking = lmcal(x.second, Rdoc_Set, Sum_Of_CF, doc_word_TF);
+		//ranking = languagemodel(doc_word_TF, Rdoc_Set, x.second, (unsigned long long)Sum_Of_CF);
 		cout << "Dirichlet Smoothing 끝!!!" << endl;
 		return_RelDoc_name(x.first, ranking, out);
 		
@@ -431,7 +432,6 @@ vector<pair<int, int>> Reldoc_Set(map<string, int> query, map<int, map<string, i
 	map<int, int>::iterator it2; // Rsetmap iterator
 	int tmp = 0; // 문서 개수 counting
 	int doc_id = 0;
-	double Sum_Of_CF = 1203213;
 	int offset = 6 + 6 + 3 + 7; // 역색인 line 길이 22
 	unsigned long long index_start = 0;
 	string line = "";
@@ -457,6 +457,7 @@ vector<pair<int, int>> Reldoc_Set(map<string, int> query, map<int, map<string, i
 					doc_word_TF_it->second.insert(make_pair(x.first, TF));
 				}
 				else {
+					tmpp.clear();
 					tmpp.insert(make_pair(x.first, TF));
 					doc_word_TF.insert(make_pair(doc_id, tmpp));
 				}
@@ -489,9 +490,10 @@ vector<pair<int, int>> Reldoc_Set(map<string, int> query, map<int, map<string, i
 		tmp++;
 		if (tmp == 1000) break; // 상위 1000개의 문서만을 선택
 	} // doc_len을 구해서 result에 <doc_id,doc_len> 으로 만들어 저장.
+
 	doc_word_TF.clear();
 	Rsetmap.clear();
-	return result; 
+	return result;
 }
 
 // Language Model - Dirichlet Smoothing 계산
@@ -521,12 +523,21 @@ vector<pair<int, double>> lmcal(map<string, int> query, vector<pair<int, int>> R
 			} else TF = 0;
 
 			if (CF != 0)
-				calc += log((TF + MU*CF / ((unsigned long long)Sum_Of_CF)) / (x.second + MU));
+				calc += log((TF + MU*CF/Sum_Of_CF) / (x.second + MU));
 		}
 		result.push_back(make_pair(x.first, calc));
 	}
-	sort(result.begin(), result.end(), pair_sort_lm);
-	return result;
+	sort(result.begin(), result.end(), pair_sort);
+
+	int tmpp=0;
+	vector<pair<int, double>> result2;
+	for (auto& x : result) {
+		result2.push_back(make_pair(x.first, x.second));
+		tmpp++;
+		if (tmpp == 1000) break;
+	}
+	return result2;
+//	return result;
 }
 
 //// Query & document Cosine Similarity 계산
@@ -672,7 +683,7 @@ string stem(string t, int doc_count, ofstream& f) {
 	} // end while(getline)
 
 	// unordered_map TF 에는 이번 문서에서 저장한 단어들과 TF계산한 것이 들어가있음
-	for (auto x : TF) {
+	for (auto& x : TF) {
 		// 문서id, 단어, TF 를 TF.dat에 저장
 		f << doc_count << "	" << x.first << "	" << x.second << endl;		
 		// 전역 list에 insert
@@ -715,10 +726,11 @@ void topic_Stem(topic t, map<int, map<string,int>>& list) {
 				else if (i == 2) it2->second += 10; // title이면 tf증가를 10씩
 			}
 			else {
-				if (!(line == "") && !(line == " "))
+				if (!(line == "") && !(line == " ")) {
 					if (i == 0) tmp.insert(make_pair(line, 1));
-					else if (i == 1) tmp.insert(make_pair(line, 10));
+					else if (i == 1) tmp.insert(make_pair(line, 5));
 					else if (i == 2) tmp.insert(make_pair(line, 10));
+				}
 			}
 		}
 	}
