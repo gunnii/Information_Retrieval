@@ -88,16 +88,13 @@ bool compare(const iindex& i1, const iindex& i2) {
 unordered_map<string, string> sirregular(); // irregularverbs.txt를 불러와서 map에 저장
 unordered_set<string> storeStopwd(); // stopword.txt를 불러와서 set에 저장
 string stem(string t, int doc_count, ofstream& f); // stemming 과정을 처리해주는 함수
-void topic_Stem(topic t, map<int, map<string, int>>& list);  // topic stemming
+void topic_Stem(topic t, map<int, map<string, int>>& list);  // query topic stemming
 string format_digit(int num_digit, int num); // 자리수 맞추는 함수
 string format_weight(double weight); // 역색인파일 형식을 맞춰주는 함수
 void utility::get_file_paths(LPCWSTR current, vector<string>& paths); // data 경로를 저장하는 함수
-//vector<pair<int, double>> cscal(map<string, int> query);
-//vector<pair<int, double>> lmcal(map<string, int> query);
-vector<pair<int, double>> lmcal(map<string, int> query, vector<pair<int, int>> RelDoc_Set, double Sum_Of_CF); // Language Model Smoothing
+vector<pair<int, double>> lmcal(map<string, int> query, vector<pair<int, int>> RelDoc_Set, double Sum_Of_CF, map<int, map<string, int>> doc_word_TF); // Language Model Smoothing
 void return_RelDoc_name(int Qnum, vector<pair<int, double>> cs, ofstream& of); // relevant document의 이름을 return
-vector<pair<int, int>> Reldoc_Set(map<string, int> query); // relevant document set을 return
-
+vector<pair<int, int>> Reldoc_Set(map<string, int> query, map<int, map<string, int>>& doc_word_TF); // relevant document set을 return
 
 // 전역변수 선언
 int index_id = 1;
@@ -131,90 +128,87 @@ void main()
 	//std::chrono::time_point<std::chrono::system_clock> tstart, tend;
 	//tstart = std::chrono::system_clock::now();
 
-	// 파일 path 저장
-	utility::get_file_paths(TEXT(".\\ir_corpus"), paths);
+	//// 파일 path 저장
+	//utility::get_file_paths(TEXT(".\\ir_corpus"), paths);
 
-	ofstream outTF("TF.dat", ios::ate); // TF 파일
-	ofstream outDoc("doc.dat", ios::ate); // 문서 정보 파일
-	for (i = 0; i < paths.size(); i++) {
-		cout << "File Open :" << paths[i];
-		file.open(paths[i]);
-		if (file.is_open()) {
-			while (!file.eof()) {
-				getline(file, line);
-				// DOCNO Parsing
-				if (line.find("</DOCNO>") != string::npos) state = false;
-				if (state) article.docno += line + " ";
-				if ((begin = line.find("<DOCNO>")) != string::npos) {
-					if ((end = line.find("</DOCNO>")) != string::npos) {
-						Tagsize = string("<DOCNO>").size();
-						article.docno += line.substr(begin + Tagsize, end - Tagsize);
-						state = false;
-					}
-					else state = true;
-				}
+	//ofstream outTF("TF.dat", ios::ate); // TF 파일
+	//ofstream outDoc("doc.dat", ios::ate); // 문서 정보 파일
+	//for (i = 0; i < paths.size(); i++) {
+	//	cout << "File Open :" << paths[i];
+	//	file.open(paths[i]);
+	//	if (file.is_open()) {
+	//		while (!file.eof()) {
+	//			getline(file, line);
+	//			// DOCNO Parsing
+	//			if (line.find("</DOCNO>") != string::npos) state = false;
+	//			if (state) article.docno += line + " ";
+	//			if ((begin = line.find("<DOCNO>")) != string::npos) {
+	//				if ((end = line.find("</DOCNO>")) != string::npos) {
+	//					Tagsize = string("<DOCNO>").size();
+	//					article.docno += line.substr(begin + Tagsize, end - Tagsize);
+	//					state = false;
+	//				}
+	//				else state = true;
+	//			}
 
-				// Headline Parsing
-				if (line.find("</HEADLINE>") != string::npos) state1 = false;
-				if (state1) article.headline += line + " ";
-				if ((begin = line.find("<HEADLINE>")) != string::npos) {
-					if ((end = line.find("</HEADLINE>")) != string::npos) {
-						Tagsize = string("<HEADLINE>").size();
-						article.headline += line.substr(begin + Tagsize, end - Tagsize);
-						state1 = false;
-					}
-					else state1 = true;
-				}
+	//			// Headline Parsing
+	//			if (line.find("</HEADLINE>") != string::npos) state1 = false;
+	//			if (state1) article.headline += line + " ";
+	//			if ((begin = line.find("<HEADLINE>")) != string::npos) {
+	//				if ((end = line.find("</HEADLINE>")) != string::npos) {
+	//					Tagsize = string("<HEADLINE>").size();
+	//					article.headline += line.substr(begin + Tagsize, end - Tagsize);
+	//					state1 = false;
+	//				}
+	//				else state1 = true;
+	//			}
 
-				// Text Parsing
-				if (line.find("</TEXT>") != string::npos) state2 = false;
-				if (state2) article.text += line + " ";
-				if ((begin = line.find("<TEXT>")) != string::npos) {
-					Tagsize = string("<TEXT>").size();
-					if ((end = line.find("</TEXT>")) != string::npos) {
-						article.text += line.substr(begin + Tagsize, end - Tagsize);
-						state2 = false;
-					}
-					else {
-						article.text += line.substr(begin + Tagsize, line.size());
-						state2 = true;
-					}
-				}
+	//			// Text Parsing
+	//			if (line.find("</TEXT>") != string::npos) state2 = false;
+	//			if (state2) article.text += line + " ";
+	//			if ((begin = line.find("<TEXT>")) != string::npos) {
+	//				Tagsize = string("<TEXT>").size();
+	//				if ((end = line.find("</TEXT>")) != string::npos) {
+	//					article.text += line.substr(begin + Tagsize, end - Tagsize);
+	//					state2 = false;
+	//				}
+	//				else {
+	//					article.text += line.substr(begin + Tagsize, line.size());
+	//					state2 = true;
+	//				}
+	//			}
 
-				// /doc를 찾으면 1개 parsing 끝
-				if (line.find("</DOC>") != string::npos) {
-					// stemming
-					result2 = stem(article.text + " " + article.headline, doc_count, outTF);
-					// <문서 정보 파일> -> doc.dat
-					document.ID = doc_count++;
-					document.name = article.docno;
-					document.len = document_length;
+	//			// /doc를 찾으면 1개 parsing 끝
+	//			if (line.find("</DOC>") != string::npos) {
+	//				// stemming
+	//				result2 = stem(article.text + " " + article.headline, doc_count, outTF);
+	//				// <문서 정보 파일> -> doc.dat
+	//				document.ID = doc_count++;
+	//				document.name = article.docno;
+	//				document.len = document_length;
 
-					if (document.ID == 521325 || document.ID == 521326)
-						cout << endl << document.ID << "	" << document.name << "	" << document.len << endl;
+	//				result = format_digit(6, document.ID) + document.name + format_digit(4, document.len) + "\n";
+	//				result.erase(remove(result.begin(), result.end(), ' '), result.end());
+	//				
+	//				memcpy(data, result.c_str(), sizeof(string));
+	//				outDoc.write(data, 27);
 
-					result = format_digit(6, document.ID) + document.name + format_digit(4, document.len) + "\n";
-					result.erase(remove(result.begin(), result.end(), ' '), result.end());
-					
-					memcpy(data, result.c_str(), sizeof(string));
-					outDoc.write(data, 27);
-
-					result2 = "";
-					article.docno = "";
-					article.headline = "";
-					article.text = "";
-				}
-			}// end while
-		}// end if 
-		file.close();
-		cout << "	처리완료" << endl;
-	}// for Loop
-	
-	outTF.close(); // TF 파일 CLOSE
-	outDoc.close(); // 문서정보파일 CLOSE
-	doc_size = doc_count; // 문서 총 개수
-	cout << "총 문서 개수 :" << doc_size << endl;
-	cout << "총 단어 개수 :" << wordlist.size() << endl;
+	//				result2 = "";
+	//				article.docno = "";
+	//				article.headline = "";
+	//				article.text = "";
+	//			}
+	//		}// end while
+	//	}// end if 
+	//	file.close();
+	//	cout << "	처리완료" << endl;
+	//}// for Loop
+	//
+	//outTF.close(); // TF 파일 CLOSE
+	//outDoc.close(); // 문서정보파일 CLOSE
+	//doc_size = doc_count; // 문서 총 개수
+	//cout << "총 문서 개수 :" << doc_size << endl;
+	//cout << "총 단어 개수 :" << wordlist.size() << endl;
 	//cout << "역색인 파일 & 단어정보파일 생성중..." << endl;
 
 	//i = 0; // 시작위치 counting
@@ -353,6 +347,7 @@ void main()
 	file.close(); // topic25 CLOSE
 	stopwordlist.clear(); // stopwordlist CLEAR
 	irrlist.clear(); // 불규칙동사 CLEAR
+	cout << "Query 정련 끝!!!" << endl;
 
 	vector<pair<int, double>> ranking;
 	vector<string> docname;
@@ -370,13 +365,18 @@ void main()
 
 	int abcd = 0;
 	vector<pair<int, int>> Rdoc_Set; // relevant document set을 저장. query 단어와 매칭 수가 많은수대로 상위 1000개 
-
+	map<int, map<string, int>> doc_word_TF;
 	// Language Model - Dirichlet Smoothing
 	out.open("result.txt", ios::ate);
 	for (auto x : query) {
-		Rdoc_Set = Reldoc_Set(x.second); // 각 쿼리별 단어set을 인자로 넘기고 relevant set을 return 받음
-		ranking = lmcal(x.second,Rdoc_Set,Sum_Of_CF);
+		Rdoc_Set = Reldoc_Set(x.second, doc_word_TF); // 각 쿼리별 단어set을 인자로 넘기고 relevant set을 return 받음
+		cout << "Relevant document set 선정 끝!!!" << endl;
+		ranking = lmcal(x.second, Rdoc_Set, Sum_Of_CF, doc_word_TF);
+		cout << "Dirichlet Smoothing 끝!!!" << endl;
 		return_RelDoc_name(x.first, ranking, out);
+		
+		doc_word_TF.clear();
+		Rdoc_Set.clear();
 		ranking.clear();
 	}
 	out.close();
@@ -393,26 +393,19 @@ void main()
 
 // relevant document의 이름을 return
 void return_RelDoc_name(int Qnum, vector<pair<int, double>> cs, ofstream& of) {
-	int offset = 6 + 16 + 4;
+	int offset = 6 + 16 + 4; // 26
 	string line = "";
 	string line2 = "";
 	ifstream f;
+	char data[30];
 	f.open("doc.dat");
-	int i = 0;
-
 	of << Qnum << endl;
 	for (auto x : cs) {
 		f.seekg((unsigned long long)((x.first-1)*(offset+2)), ios::beg);
 		getline(f, line);
-		line2 = line.substr(6, 16);
-		if (line2.at(0) == 'Y' || line2.at(0) == 'P') {
-			line2 = line.substr(5, 16);
-			of << line2 << "\t";
-		}
-		else
-			of << line2 << "\t";
-		i++;
-		if (i == 1000) break; // 상위 10개만
+		line2 = line.substr(6, 16) + "\t";
+		memcpy(data, line2.c_str(), sizeof(string));
+		of.write(data, 17);
 	}
 	of << endl;
 	f.close();
@@ -427,26 +420,28 @@ int return_doclen(int id) {
 	f.seekg((unsigned long long)((id - 1)*(offset + 2)), ios::beg);
 	getline(f, line);
 	f.close();
-	if (line.size() != 28) {
-		return stoi(line.substr(22, 4));
-	}
-	else 
-		return stoi(line.substr(23, 4)); // 문서 길이 return
+	return stoi(line.substr(23, 4));
 }
 
-
 // return sumOfCF and relevant document set <doc_id,doc_len> 
-vector<pair<int, int>> Reldoc_Set(map<string,int> query) {
+vector<pair<int, int>> Reldoc_Set(map<string, int> query, map<int, map<string, int>>& doc_word_TF_result) {
 	ifstream f;
 	map<int, int> Rsetmap;
 	map<string, word>::const_iterator it; // wordlist iterator
 	map<int, int>::iterator it2; // Rsetmap iterator
-	int tmp = 0;
+	int tmp = 0; // 문서 개수 counting
 	int doc_id = 0;
+	double Sum_Of_CF = 1203213;
 	int offset = 6 + 6 + 3 + 7; // 역색인 line 길이 22
 	unsigned long long index_start = 0;
 	string line = "";
 	vector<pair<int, int>> Rset;
+	vector<pair<int, int>> result;
+
+	map<int, map<string, int>> doc_word_TF;
+	map<int, map<string, int>>::iterator doc_word_TF_it;
+	map<string, int> tmpp;
+	int TF;
 
 	f.open("index.dat");
 	for (auto x : query) {
@@ -456,9 +451,23 @@ vector<pair<int, int>> Reldoc_Set(map<string,int> query) {
 			for (int i = 0; i < it->second.DF; i++) {
 				getline(f, line);
 				doc_id = stoi(line.substr(6,6));
+				TF = stoi(line.substr(12, 3));
+
+				if ((doc_word_TF_it = doc_word_TF.find(doc_id)) != doc_word_TF.end()) {
+					doc_word_TF_it->second.insert(make_pair(x.first, TF));
+				}
+				else {
+					tmpp.insert(make_pair(x.first, TF));
+					doc_word_TF.insert(make_pair(doc_id, tmpp));
+				}
+
 				if ((it2 = Rsetmap.find(doc_id)) != Rsetmap.end()) {
 					it2->second += x.second; // doc hitting 수를 계산 query의 TF를 더함
-				} else Rsetmap.insert(make_pair(doc_id, x.second));
+				}
+				else {
+					Rsetmap.insert(make_pair(doc_id, x.second));
+				}
+
 			} // end inner for loop
 		} // end if 
 	} // end for loop 
@@ -468,84 +477,57 @@ vector<pair<int, int>> Reldoc_Set(map<string,int> query) {
 	// 일단 vector 형식의 Rset에 다시 삽입함. 정렬을 위해.
 	for (auto x : Rsetmap) {
 		Rset.push_back(make_pair(x.first, x.second));
-	} 
-	
+	}
+	Rsetmap.clear();
 	sort(Rset.begin(), Rset.end(), pair_sort_hit); // hiiting 수가 높은 대로 정렬
-
 	for (auto& y : Rset) {
 		y.second = return_doclen(y.first);
-		tmp++;
-		if (tmp > 1000) break; // 상위 1000개의 문서만을 선택
-	} // doc_len을 구해서 Rset을 <doc_id,doc_len> 으로 만듬.
+		result.push_back(make_pair(y.first, y.second));
 
+		doc_word_TF_it = doc_word_TF.find(y.first);
+		doc_word_TF_result.insert(make_pair(doc_word_TF_it->first, doc_word_TF_it->second));
+		tmp++;
+		if (tmp == 1000) break; // 상위 1000개의 문서만을 선택
+	} // doc_len을 구해서 result에 <doc_id,doc_len> 으로 만들어 저장.
+	doc_word_TF.clear();
 	Rsetmap.clear();
-	return Rset; // query 단어들의 CF의 합을 return - LM계산시 사용
+	return result; 
 }
 
 // Language Model - Dirichlet Smoothing 계산
-vector<pair<int, double>> lmcal(map<string, int> query, vector<pair<int, int>> RelDoc_Set, double Sum_Of_CF) {
+vector<pair<int, double>> lmcal(map<string, int> query, vector<pair<int, int>> RelDoc_Set, double Sum_Of_CF, map<int, map<string, int>> doc_word_TF) {
 	vector<pair<int, double>> result;
 	map<string, word>::const_iterator it; // wordlist iterator
-	int MU = 1000;
+	double MU = 2000;
 	double calc;
+	int TF = 0;
+	double CF = 0;
+
+	map<int, map<string, int>>::const_iterator it2;
+	map<string, int>::const_iterator it3;
 
 	// RelDoc_Set 에서 doc_id, doc_len 넘어옴 
 	// x.first=doc_id , x.second=doc_len
 	for (auto x : RelDoc_Set) {
 		calc = 0;
+		it2 = doc_word_TF.find(x.first);
 		for (auto y : query) {
-			it = wordlist.find(y.first);
-			calc += log((y.second + MU*it->second.CF / Sum_Of_CF) / (x.second + MU));
+			if ((it = wordlist.find(y.first)) != wordlist.end()) {
+				CF = it->second.CF;
+			} else CF = 0;
+
+			if ((it3 = it2->second.find(y.first)) != it2->second.end()) {
+				TF = it3->second;
+			} else TF = 0;
+
+			if (CF != 0)
+				calc += log((TF + MU*CF / ((unsigned long long)Sum_Of_CF)) / (x.second + MU));
 		}
 		result.push_back(make_pair(x.first, calc));
 	}
+	sort(result.begin(), result.end(), pair_sort_lm);
 	return result;
 }
-//// Language Model 
-//vector<pair<int,double>> lmcal(map<string,int> query) {
-//	int offset = 6 + 6 + 3 + 7; 
-//	vector<pair<int, double>> result;
-//	map<string, word>::iterator it; // wordlist iterator
-//	map<int, double>::iterator it2; // LM iterator
-//	ifstream f;
-//	string line = "";
-//	int doc_id=0;
-//	int mu = 1000;
-//	int D = 0;
-//	double tmp = 0;
-//	map<int, double> lm;
-//	unsigned long long seekstart;
-//
-//	f.open("index.dat");
-//	for (auto x : query) {
-//		cout << x.first << endl; // 임시
-//		if ((it = wordlist.find(x.first)) != wordlist.end()) {
-//			cout << it->first << "	"<< it->second.DF << "	" << it->second.CF << "	" << it->second.start << endl; // 임시
-//			seekstart = it->second.start*(offset + 2);
-//			f.seekg(seekstart, ios::beg);
-//			for (int i = 0; i < it->second.DF; i++) {
-//				getline(f, line);
-//				doc_id = stoi(line.substr(6, 6)); // relevant doc_id
-//				D = return_doclen(doc_id); // 해당 문서의 길이 |D|
-//				tmp = mu*it->second.CF;
-//				if ((it2=lm.find(doc_id)) != lm.end()) {
-//					it2->second += log((double)((x.second + (tmp/pow(10,9))) / (D + mu)));
-//				}
-//				else
-//					lm.insert(make_pair(doc_id, log((double)((x.second + (tmp / pow(10, 9))) / (D + mu)))));
-//			} // end inner for
-//			cout << "계산결과 :"<< it2->second << endl; // 임시
-//		} // end if
-//	} // end for
-//	f.close();
-//
-//	for (auto y : lm) {
-//		result.push_back(make_pair(y.first, y.second));
-//	}
-//	lm.clear();
-//	sort(result.begin(), result.end(), pair_sort_lm);
-//	return result;
-//}
 
 //// Query & document Cosine Similarity 계산
 //vector<pair<int, double>> cscal(map<string, int> query) {
@@ -713,7 +695,7 @@ void topic_Stem(topic t, map<int, map<string,int>>& list) {
 	unordered_map<string, string>::const_iterator it;
 	map<string, int>::iterator it2;
 	map<string, int> tmp;
-	
+
 	for (int i = 0; i < 3; i++) {
 		ss.clear();
 		if (i == 0) ss.str(t.narr);
@@ -728,12 +710,15 @@ void topic_Stem(topic t, map<int, map<string,int>>& list) {
 			if (stopwordlist.find(line) != stopwordlist.end()) line = ""; // Remove Stopword
 
 			if ((it2 = tmp.find(line)) != tmp.end()) {
-				if (i == 2) it2->second += 10; // title이면 tf증가를 10씩
-				it2->second += 1; // TF계산
+				if (i == 0) it2->second += 1; // TF계산
+				else if (i == 1) it2->second += 5; // desc이면 5씩증가
+				else if (i == 2) it2->second += 10; // title이면 tf증가를 10씩
 			}
 			else {
-				if(!(line=="") && !(line==" "))
-					tmp.insert(make_pair(line, 1));
+				if (!(line == "") && !(line == " "))
+					if (i == 0) tmp.insert(make_pair(line, 1));
+					else if (i == 1) tmp.insert(make_pair(line, 10));
+					else if (i == 2) tmp.insert(make_pair(line, 10));
 			}
 		}
 	}
