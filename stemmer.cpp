@@ -127,7 +127,6 @@ void main()
 	//// 시간 측정을 위해서
 	//std::chrono::time_point<std::chrono::system_clock> tstart, tend;
 	//tstart = std::chrono::system_clock::now();
-
 	//// 파일 path 저장
 	//utility::get_file_paths(TEXT(".\\ir_corpus"), paths);
 
