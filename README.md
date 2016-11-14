@@ -19,7 +19,7 @@
     * Evaluation ( 평가 )
 
 ## Recall-Precision Graph
-![가나다](./graph.jpg) 
+<image src = "./graph.jpg">
 
 ## 실행방법
     * index 파일들은 이미 생성되어 있고, 아래의 링크에서 다운받아야합니다.
