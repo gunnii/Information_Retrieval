@@ -28,6 +28,6 @@
     * 모두 같은 폴더에 있어야 정상적으로 작동합니다.
 
 ## 필요한 파일
-    * corpus (기사 약 55만개) - [googlelink]: https://drive.google.com/file/d/0B8VS6fJASyTvLXc0S2t0X2VWYm8/view?usp=sharing
-    * Porter2 Stemmer - [googlelink]: https://drive.google.com/file/d/0B8VS6fJASyTvVkItNUVvZ0RENGc/view?usp=sharing
-    * 최종 보고서 - [googlelink]: https://drive.google.com/file/d/0B8VS6fJASyTvR1cxZTExa2c1N2M/view?usp=sharing
+    * corpus (기사 약 55만개) - https://drive.google.com/file/d/0B8VS6fJASyTvLXc0S2t0X2VWYm8/view?usp=sharing
+    * Porter2 Stemmer - https://drive.google.com/file/d/0B8VS6fJASyTvVkItNUVvZ0RENGc/view?usp=sharing
+    * 최종 보고서 - https://drive.google.com/file/d/0B8VS6fJASyTvR1cxZTExa2c1N2M/view?usp=sharing
