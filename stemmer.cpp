@@ -95,7 +95,7 @@ void utility::get_file_paths(LPCWSTR current, vector<string>& paths); // data 경
 vector<pair<int, double>> lmcal(map<string, int> query, vector<pair<int, int>> RelDoc_Set, double Sum_Of_CF, map<int, map<string, int>> doc_word_TF); // Language Model Smoothing
 void return_RelDoc_name(int Qnum, vector<pair<int, double>> cs, ofstream& of); // relevant document의 이름을 return
 vector<pair<int, int>> Reldoc_Set(map<string, int> query, map<int, map<string, int>>& doc_word_TF); // relevant document set을 return
-//vector<pair<int, double>> cscal(map<string, int> query); // Vector space model 
+//vector<pair<int, double>> cscal(map<string, int> query);
 
 // 전역변수 선언
 int index_id = 1;
@@ -576,11 +576,10 @@ vector<pair<int, double>> lmcal(map<string, int> query, vector<pair<int, int>> R
 //		result.push_back(make_pair(x.first, x.second.first / sqrt(x.second.second)));
 //	}
 //	sort(result.begin(), result.end(), pair_sort); // cosine similarity 높은 순으로 정렬
+
 //
 //	result.clear();
 //	cs.clear();
-//
-//	return result;
 //}
 
 // stopword를 불러와서 unordered_set에 저장함
