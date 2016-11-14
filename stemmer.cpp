@@ -95,7 +95,7 @@ void utility::get_file_paths(LPCWSTR current, vector<string>& paths); // data 경
 vector<pair<int, double>> lmcal(map<string, int> query, vector<pair<int, int>> RelDoc_Set, double Sum_Of_CF, map<int, map<string, int>> doc_word_TF); // Language Model Smoothing
 void return_RelDoc_name(int Qnum, vector<pair<int, double>> cs, ofstream& of); // relevant document의 이름을 return
 vector<pair<int, int>> Reldoc_Set(map<string, int> query, map<int, map<string, int>>& doc_word_TF); // relevant document set을 return
-vector<pair<int, double>> cscal(map<string, int> query);
+//vector<pair<int, double>> cscal(map<string, int> query); // Vector space model 
 
 // 전역변수 선언
 int index_id = 1;
@@ -302,7 +302,6 @@ void main()
 	}
 	file.close(); // term.dat CLOSE
 	cout << "Term.dat 처리 끝!!!" << endl;
-
 	// 시간 측정을 위해서
 	std::chrono::time_point<std::chrono::system_clock> tstart, tend;
 	tstart = std::chrono::system_clock::now();
@@ -367,18 +366,18 @@ void main()
 	map<int, map<string, int>> doc_word_TF;
 
 	// Language Model - Dirichlet Smoothing
+	cout << "언어모델 시작!!!" << endl;
 	out.open("result.txt");
 	for (auto x : query) {
 		Rdoc_Set = Reldoc_Set(x.second, doc_word_TF); // 각 쿼리별 단어set을 인자로 넘기고 relevant set을 return 받음
 		ranking = lmcal(x.second, Rdoc_Set, Sum_Of_CF, doc_word_TF);
 		return_RelDoc_name(x.first, ranking, out);
-		
 		doc_word_TF.clear();
 		Rdoc_Set.clear();
 		ranking.clear();
 	}
 	out.close();
-	cout << "언어모델 결과 출력 완료" << endl;
+	cout << "언어모델 결과 출력 완료!!!" << endl;
 
 	//시간측정
 	tend = std::chrono::system_clock::now();
@@ -435,10 +434,11 @@ vector<pair<int, int>> Reldoc_Set(map<string, int> query, map<int, map<string, i
 	vector<pair<int, int>> Rset;
 	vector<pair<int, int>> result;
 
-	map<int, map<string, int>> doc_word_TF;
+	map<int, map<string, int>> doc_word_TF; // 각 문서별 출현한 query 단어를 기록.
 	map<int, map<string, int>>::iterator doc_word_TF_it;
 	map<string, int> tmpp;
 	int TF;
+	double weight = 0;
 
 	f.open("index.dat");
 	for (auto x : query) {
@@ -449,6 +449,7 @@ vector<pair<int, int>> Reldoc_Set(map<string, int> query, map<int, map<string, i
 				getline(f, line);
 				doc_id = stoi(line.substr(6,6));
 				TF = stoi(line.substr(12, 3));
+				weight = stod(line.substr(15,6)); // 임시
 
 				if ((doc_word_TF_it = doc_word_TF.find(doc_id)) != doc_word_TF.end()) {
 					doc_word_TF_it->second.insert(make_pair(x.first, TF));
@@ -460,10 +461,10 @@ vector<pair<int, int>> Reldoc_Set(map<string, int> query, map<int, map<string, i
 				}
 
 				if ((it2 = Rsetmap.find(doc_id)) != Rsetmap.end()) {
-					it2->second += x.second; // doc hitting 수를 계산 query의 TF를 더함
+					it2->second += x.second * weight; // doc hitting 수를 계산 query의 TF에 역색인의 weight를 곱해서 가중치 계산
 				}
 				else {
-					Rsetmap.insert(make_pair(doc_id, x.second));
+					Rsetmap.insert(make_pair(doc_id, x.second* weight));
 				}
 
 			} // end inner for loop
@@ -477,7 +478,7 @@ vector<pair<int, int>> Reldoc_Set(map<string, int> query, map<int, map<string, i
 		Rset.push_back(make_pair(x.first, x.second));
 	}
 	Rsetmap.clear();
-	sort(Rset.begin(), Rset.end(), pair_sort_hit); // hiiting 수가 높은 대로 정렬
+	sort(Rset.begin(), Rset.end(), pair_sort_hit); // 가중치가 높은대로 계산
 	for (auto& y : Rset) {
 		y.second = return_doclen(y.first);
 		result.push_back(make_pair(y.first, y.second));
@@ -526,68 +527,61 @@ vector<pair<int, double>> lmcal(map<string, int> query, vector<pair<int, int>> R
 	}
 	sort(result.begin(), result.end(), pair_sort);
 
-	int tmpp=0;
-	vector<pair<int, double>> result2;
-	for (auto& x : result) {
-		result2.push_back(make_pair(x.first, x.second));
-		tmpp++;
-		if (tmpp == 1000) break;
-	}
-	return result2;
+	//int tmpp=0;
+	//vector<pair<int, double>> result2;
+	//for (auto& x : result) {
+	//	result2.push_back(make_pair(x.first, x.second));
+	//	tmpp++;
+	//	if (tmpp == 900) break; // recall-precision graph 그리기 위해 100*n개씩 출력하는중.
+	//}
+	//return result2;
+	return result;
+}
+
+//// Query & document Cosine Similarity 계산
+//vector<pair<int, double>> cscal(map<string, int> query) {
+//	int offset = 6 + 6 + 3 + 7;
+//	int tmp = 0;
+//	ifstream f;
+//	map<string, word>::iterator it; // wordlist iterator
+//	map<int, pair<double, double>>::iterator it2; // cs iterator
+//	vector<pair<int, double>> result; // doc_id, similarirty 들어감
+//	string line = "";
+//	int doc_id = 0;;
+//	double weight = 0;
+//
+//	map<int, pair<double, double>> cs;
+//
+//	f.open("index.dat");
+//	for (auto y : query) {
+//		if ((it = wordlist.find(y.first)) != wordlist.end()) {
+//			f.seekg((unsigned long long)(it->second.start*(offset + 2)), ios::beg);
+//			for (int i = 0; i < it->second.DF; i++) {
+//				getline(f, line);
+//				doc_id = stoi(line.substr(6, 6));
+//				weight = stod(line.substr(15, 7));
+//				if ((it2 = cs.find(doc_id)) != cs.end()) {
+//					it2->second.first += (weight*y.second);
+//					it2->second.second += pow(weight,2);
+//				}
+//				else {
+//					cs.insert(make_pair(doc_id, make_pair((weight*y.second), pow(weight, 2))));
+//				}
+//			}
+//		}
+//	} // cosine similarity 계산에 필요한 분자,분모 구하기 끝
+//	f.close();
+//
+//	for (auto x : cs) {
+//		result.push_back(make_pair(x.first, x.second.first / sqrt(x.second.second)));
+//	}
+//	sort(result.begin(), result.end(), pair_sort); // cosine similarity 높은 순으로 정렬
+//
+//	result.clear();
+//	cs.clear();
+//
 //	return result;
-}
-
-// Query & document Cosine Similarity 계산
-vector<pair<int, double>> cscal(map<string, int> query) {
-	int offset = 6 + 6 + 3 + 7;
-	int tmp = 0;
-	ifstream f;
-	map<string, word>::iterator it; // wordlist iterator
-	map<int, pair<double, double>>::iterator it2; // cs iterator
-	vector<pair<int, double>> result; // doc_id, similarirty 들어감
-	vector<pair<int, double>> result2;
-	string line = "";
-	int doc_id = 0;;
-	double weight = 0;
-
-	map<int, pair<double, double>> cs;
-
-	f.open("index.dat");
-	for (auto y : query) {
-		if ((it = wordlist.find(y.first)) != wordlist.end()) {
-			f.seekg((unsigned long long)(it->second.start*(offset + 2)), ios::beg);
-			for (int i = 0; i < it->second.DF; i++) {
-				getline(f, line);
-				doc_id = stoi(line.substr(6, 6));
-				weight = stod(line.substr(15, 7));
-				if ((it2 = cs.find(doc_id)) != cs.end()) {
-					it2->second.first += (weight*y.second);
-					it2->second.second += pow(weight,2);
-				}
-				else {
-					cs.insert(make_pair(doc_id, make_pair((weight*y.second), pow(weight, 2))));
-				}
-			}
-		}
-	} // cosine similarity 계산에 필요한 분자,분모 구하기 끝
-	f.close();
-
-	for (auto x : cs) {
-		result.push_back(make_pair(x.first, x.second.first / sqrt(x.second.second)));
-	}
-	sort(result.begin(), result.end(), pair_sort); // cosine similarity 높은 순으로 정렬
-	for (auto x : result) {
-		tmp++;
-		result2.push_back(x);
-		if (tmp == 1000)
-			break;
-	}
-
-	result.clear();
-	cs.clear();
-
-	return result2;
-}
+//}
 
 // stopword를 불러와서 unordered_set에 저장함
 unordered_set<string> storeStopwd() {
