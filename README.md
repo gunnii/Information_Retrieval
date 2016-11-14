@@ -19,9 +19,7 @@
     * Evaluation ( 평가 )
 
 ## Recall-Precision Graph
-<p align="center">
-  <img src="./graph.jpg" >
-</p>
+![가나다](./graph.jpg) 
 
 ## 실행방법
     * index 파일들은 이미 생성되어 있고, 아래의 링크에서 다운받아야합니다.
@@ -32,3 +30,4 @@
 ## 필요한 파일
     * corpus (기사 약 55만개) - https://drive.google.com/file/d/0B8VS6fJASyTvLXc0S2t0X2VWYm8/view?usp=sharing
     * Porter2 Stemmer - https://drive.google.com/file/d/0B8VS6fJASyTvVkItNUVvZ0RENGc/view?usp=sharing
+    * 최종 보고서 - https://drive.google.com/file/d/0B8VS6fJASyTvR1cxZTExa2c1N2M/view?usp=sharing
