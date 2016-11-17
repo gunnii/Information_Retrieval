@@ -88,7 +88,7 @@ void Porter2Stemmer::trim(std::string& word)
 
 	std::transform(word.begin(), word.end(), word.begin(), ::tolower);
 	
-	// 기존 코드에서 수정부분
+	// modification
 	auto it
 		= std::remove_if(word.begin(), word.end(), [](char ch)
 	{
@@ -151,6 +151,7 @@ void Porter2Stemmer::internal::changeY(std::string& word)
 
 /*
 	< class 1 > 
+	verb conjugation and pluralization
 */
 void Porter2Stemmer::internal::class1(std::string& word) {
 	static const std::vector<std::pair<std::string, std::string>> patterns =

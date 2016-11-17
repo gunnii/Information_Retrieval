@@ -15,10 +15,10 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="stemmer.cpp">
+    <ClCompile Include="porter2_stemmer.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="porter2_stemmer.cpp">
+    <ClCompile Include="Search.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>

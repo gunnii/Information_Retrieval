@@ -144,7 +144,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="porter2_stemmer.cpp" />
-    <ClCompile Include="stemmer.cpp" />
+    <ClCompile Include="Search.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="porter2_stemmer.h" />
