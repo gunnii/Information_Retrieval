@@ -19,12 +19,13 @@
     * Evaluation ( 평가 )
 
 ## Recall-Precision Graph
-![Error](graph.JPG)
+![Error](Execution files/graph.JPG)
 
 ## 실행방법
     * index 파일들은 이미 생성되어 있고, 아래의 링크에서 다운받아야합니다.
     * index 파일들의 압축을 풀고, Execution files/실행파일.exe와 같은 위치에 두고, exe 파일을 실행합니다.
-    * 실행 결과 result.txt 결과 파일이 생성되고, Execution files/evaluator.exe를 실행하면 결과파일 evaluation.txt가 출력됩니다.
+    * 실행 결과 result.txt 결과 파일이 생성되고, 이 파일을
+      Execution files/evaluator.exe를 실행하면 평가파일 evaluation.txt가 출력됩니다.
     * 모두 같은 폴더에 있어야 정상적으로 작동합니다.
 
 ## 필요한 파일
