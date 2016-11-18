@@ -29,6 +29,7 @@
     * 모두 같은 폴더에 있어야 정상적으로 작동합니다.
 
 ## 필요한 파일
+    * Porter2 Stemmer - https://bitbucket.org/smassung/porter2_stemmer/src/f2a9c7fff1263e7c688fbef681fb01fe01059573?at=master
     * corpus (기사 약 55만개) - https://drive.google.com/file/d/0B8VS6fJASyTvLXc0S2t0X2VWYm8/view?usp=sharing
-    * Porter2 Stemmer - https://drive.google.com/file/d/0B8VS6fJASyTvVkItNUVvZ0RENGc/view?usp=sharing
+    * 역색인 파일 - https://drive.google.com/file/d/0B8VS6fJASyTvVkItNUVvZ0RENGc/view?usp=sharing
     * 최종 보고서 - https://drive.google.com/file/d/0B8VS6fJASyTvR1cxZTExa2c1N2M/view?usp=sharing
